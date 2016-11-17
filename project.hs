@@ -6,10 +6,10 @@ newtype Ident = Ident String deriving (Show);
 data NExpr a = Var Ident | Const a | Plus (NExpr a)  (NExpr a) | Minus (NExpr a)  (NExpr a) | 
 	Times (NExpr a) (NExpr a) deriving (Show);
 	
-data BExpr a = AND (NExpr a)  (NExpr a) | OR (NExpr a) (NExpr a) | NOT (NExpr a) | 
+data BExpr a = AND (BExpr a)  (BExpr a) | OR (BExpr a) (BExpr a) | NOT (BExpr a) | 
 	Gt (NExpr a) (NExpr a) | Eq (NExpr a) (NExpr a) deriving (Show);
 	
-data Command a = Assign Ident (NExpr a) | Input Ident | Print Ident | Empty Ident | Push Ident a | 
+data Command a = Assign Ident (NExpr a) | Input Ident | Print Ident | Empty Ident | Push Ident (NExpr a) | 
 	Pop Ident Ident | Size Ident Ident | Seq [Command a] | Cond (BExpr a) (Command a) | Loop (BExpr a) (Command a) deriving (Show);
 
 
