@@ -4,46 +4,32 @@
 #include <iostream>
 #include <map>
 using namespace std;
-
-// struct to store information about tokens
 typedef struct {
   string kind;
   string text;
 } Attrib;
-
-// function to fill token information (predeclaration)
 void zzcr_attr(Attrib *attr, int type, char *text);
-
-// fields for AST nodes
 #define AST_FIELDS string kind; string text;
 #include "ast.h"
-
-// macro to create a new AST node (and function predeclaration)
 #define zzcr_ast(as,attr,ttype,textt) as=createASTnode(attr,ttype,textt)
 AST* createASTnode(Attrib* attr,int ttype, char *textt);
 >>
-
 <<
 #include <cstdlib>
 #include <cmath>
 
-//global structures
 AST *root;
 
-
-// function to fill token information
 void zzcr_attr(Attrib *attr, int type, char *text) {
-/*  if (type == ID) {
-    attr->kind = "id";
+  if (type == ID) {
+    attr->kind = "ID";
     attr->text = text;
   }
-  else {*/
+  else {
     attr->kind = text;
     attr->text = "";
-//  }
+  }
 }
-
-// function to create a new AST node
 AST* createASTnode(Attrib* attr, int type, char* text) {
   AST* as = new AST;
   as->kind = attr->kind; 
@@ -53,8 +39,6 @@ AST* createASTnode(Attrib* attr, int type, char* text) {
   return as;
 }
 
-
-/// create a new "list" AST node with one element
 AST* createASTlist(AST *child) {
  AST *as=new AST;
  as->kind="list";
@@ -63,67 +47,167 @@ AST* createASTlist(AST *child) {
  return as;
 }
 
-/// get nth child of a tree. Count starts at 0.
-/// if no such child, returns NULL
 AST* child(AST *a,int n) {
 AST *c=a->down;
 for (int i=0; c!=NULL && i<n; i++) c=c->right;
 return c;
 }
-
-
-
-/// print AST, recursively, with indentation
-void ASTPrintIndent(AST *a,string s)
-{
-  if (a==NULL) return;
-
-  cout<<a->kind;
-  if (a->text!="") cout<<"("<<a->text<<")";
-  cout<<endl;
-
-  AST *i = a->down;
-  while (i!=NULL && i->right!=NULL) {
-    cout<<s+"  \\__";
-    ASTPrintIndent(i,s+"  |"+string(i->kind.size()+i->text.size(),' '));
-    i=i->right;
-  }
-  
-  if (i!=NULL) {
-      cout<<s+"  \\__";
-      ASTPrintIndent(i,s+"   "+string(i->kind.size()+i->text.size(),' '));
-      i=i->right;
-  }
+void ASTPrintIndent(AST *a);
+void IDNExprPrint(AST* a){
+	if (a->kind == "ID"){
+		cout << " (Var (Ident \"" << a->text << "\") ) ";
+	} else {
+		ASTPrintIndent(a);
+	}
 }
-
-/// print AST 
-void ASTPrint(AST *a)
+void ASTPrintIndent(AST *a)
 {
-  while (a!=NULL) {
-    cout<<" ";
-    ASTPrintIndent(a,"");
-    a=a->right;
-  }
+	if (a==NULL) return;
+	if (a->kind == "list"){
+		cout << "Seq [ ";
+		AST *i = a->down;
+		bool first = true;
+		while (i!=NULL /*&& i->right!=NULL*/) {
+			if (first){
+				first=false;
+			} else {
+				cout << " , ";
+			}
+			cout << " ( ";
+			ASTPrintIndent(i);
+			cout << " ) ";
+			i=i->right;
+		}
+		cout << " ] ";
+		return;	
+	}
+	else if (a->kind == "ID"){
+		cout << " (Ident \"" << a->text << "\") ";
+	}
+	else if (a->kind == "INPUT"){
+		cout << "Input ";
+		ASTPrintIndent(a->down);
+	}
+	else if (a->kind == "PRINT"){
+		cout << "Print ";
+		ASTPrintIndent(a->down);
+	}
+	else if (a->kind == "EMPTY"){
+		cout << "Empty ";
+		ASTPrintIndent(a->down);
+	}
+	else if (a->kind == "SIZE"){
+		cout << "Size ";
+		ASTPrintIndent(a->down);
+		ASTPrintIndent(a->down->right);
+	}
+	else if (a->kind == "POP"){
+		cout << "Pop ";
+		ASTPrintIndent(a->down);
+		ASTPrintIndent(a->down->right);
+	}	
+	else if (a->kind == "PUSH"){
+		cout << "Push (";
+		ASTPrintIndent(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == ":="){
+		cout << "Assign (";
+		ASTPrintIndent(a->down);
+		cout << " ) ( ";
+		ASTPrintIndent(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == "IF"){
+		cout << "Cond (";
+		ASTPrintIndent(a->down);
+		cout << " ) ( ";
+		ASTPrintIndent(a->down->right);
+		cout << " ) ( ";
+		ASTPrintIndent(a->down->right->right);
+		cout << ")";
+	}
+	else if (a->kind == "WHILE"){
+		cout << "Loop (";
+		ASTPrintIndent(a->down);
+		cout << " ) ( ";
+		ASTPrintIndent(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == "*"){
+		cout << "Times (";
+		IDNExprPrint(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == "+"){
+		cout << "Plus (";
+		IDNExprPrint(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == "-"){
+		cout << "Minus (";
+		IDNExprPrint(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == "AND"){
+		cout << "And (";
+		IDNExprPrint(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == "OR"){
+		cout << "Or (";
+		IDNExprPrint(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == "NOT"){
+		cout << "Not (";
+		IDNExprPrint(a->down);
+		cout << ")";
+	}
+	else if (a->kind == "="){
+		cout << "Eq (";
+		IDNExprPrint(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else if (a->kind == ">"){
+		cout << "Gt (";
+		IDNExprPrint(a->down);
+		cout << " ) ( ";
+		IDNExprPrint(a->down->right);
+		cout << ")";
+	}
+	else {
+		cout << "Const " << a->kind;
+	}
 }
-
-
-
 int main() {
   root = NULL;
   ANTLR(command(&root), stdin);
-  ASTPrint(root);
+  ASTPrintIndent(root);
 }
 >>
-
 #lexclass START
-
 #token INPUT "INPUT"
 #token IF "IF"
 #token THEN "THEN"
 #token GT "\>"
 #token LT "\<"
 #token ASSIG ":=" 
-#token EQ "\="
+#token EQ "="
 #token OR "OR"
 #token NOT "NOT"
 #token AND "AND"
