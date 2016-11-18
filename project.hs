@@ -17,7 +17,6 @@ instance (Show a) => Show (BExpr a) where
 	show (Not v) = show v
 	show (And m1 m2) = show m1 ++ " AND " ++ show m2 
 	show (Or m1 m2) =  show m1 ++ " OR " ++ show m2 
-	
 data Command a = Assign Ident (NExpr a) | Input Ident | Print Ident | Empty Ident | Push Ident (NExpr a) | 
 	Pop Ident Ident | Size Ident Ident | Seq [Command a] | Cond (BExpr a) (Command a) (Command a) | Loop (BExpr a) (Command a);
 instance (Show a) => Show (Command a) where
@@ -31,16 +30,28 @@ instance (Show a) => Show (Command a) where
 	show (Seq list) = foldl (\y x -> y ++ show x ++ "\n") "" list
 	show (Cond b m1 m2) = "IF " ++ show b ++ " THEN " ++ show m1 ++ " ELSE " ++ show m2 ++ " END "
 	show (Loop b m1 ) = "WHILE " ++ show b ++ " DO " ++ show m1 ++ " END "
-	
+showC :: Show a => String -> Command a -> String	
+showC s (Assign v m1) = s ++ show v ++ " := " ++ show m1
+showC s (Push m1 m2) = s ++ "PUSH " ++ show m1 ++ " " ++ show m2
+showC s (Pop m1 m2) = s ++ "POP " ++ show m1 ++ " " ++ show m2
+showC s (Size m1 m2) = s ++ "SIZE " ++ show m1 ++ show m2
+showC s (Input v) = s ++ "INPUT " ++ show v
+showC s (Print v) = s ++ "PRINT " ++ show v
+showC s (Empty v) = s ++ "EMPTY " ++ show v
+showC s (Seq list) = foldl (\y x -> y ++ showC s x ++ "\n") "" list
+showC s (Cond b m1 m2) = s ++ "IF " ++ show b ++ " THEN\n" ++ showC (s ++ "  ") m1 ++ s ++ "ELSE\n" ++ showC (s ++ "  ") m2 ++ s ++ "END "
+showC s (Loop b m1 ) = s ++ "WHILE " ++ show b ++ " DO\n" ++ showC (s ++ "  ") m1 ++ s ++ "END"
 
-main :: IO ()
-main = putStr ( show  ((Seq [ (Input (Ident "X")  ) , ( Input (Ident "Y") ), ( Assign (Ident "X") ( Plus (Const (15::Int)) (Const (16::Int)) ) )])::(Command Int)));
+main3 :: IO ()
+main3 = putStr ( show  ((Seq [ (Input (Ident "X")  ) , ( Input (Ident "Y") ), ( Assign (Ident "X") ( Plus (Const (15::Int)) (Const (16::Int)) ) )])::(Command Int)));
 
 main1 :: IO()
-main1 = putStr ( show  ((Seq [  ( Input  (Ident "X")  )  ,  ( Empty  (Ident "P")  )  ,  ( Loop (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Eq ( (Var (Ident "X") )  ) ( Const 0)) ) ( Seq [  ( Input  (Ident "Y")  )  ,  ( Push ( (Ident "P")  ) (  (Var (Ident "Y") ) ) )  ] ) )  ,  ( Assign ( (Ident "S")  ) ( Const 0) )  ,  ( Size  (Ident "P")  (Ident "L")  )  ,  ( Loop (Gt ( (Var (Ident "L") )  ) ( Const 0) ) ( Seq [  ( Pop  (Ident "P")  (Ident "Y")  )  ,  ( Assign ( (Ident "S")  ) ( Plus ( (Var (Ident "S") )  ) (  (Var (Ident "Y") ) )) )  ,  ( Assign ( (Ident "L")  ) ( Minus ( (Var (Ident "L") )  ) ( Const 1)) )  ] ) )  ,  ( Print  (Ident "S")  )  ] )::(Command Int)));
+main1 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Empty  (Ident "P")  )  ,  ( Loop (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Eq ( (Var (Ident "X") )  ) ( Const 0)) ) ( Seq [  ( Input  (Ident "Y")  )  ,  ( Push ( (Ident "P")  ) (  (Var (Ident "Y") ) ) )  ] ) )  ,  ( Assign ( (Ident "S")  ) ( Const 0) )  ,  ( Size  (Ident "P")  (Ident "L")  )  ,  ( Loop (Gt ( (Var (Ident "L") )  ) ( Const 0) ) ( Seq [  ( Pop  (Ident "P")  (Ident "Y")  )  ,  ( Assign ( (Ident "S")  ) ( Plus ( (Var (Ident "S") )  ) (  (Var (Ident "Y") ) )) )  ,  ( Assign ( (Ident "L")  ) ( Minus ( (Var (Ident "L") )  ) ( Const 1)) )  ] ) )  ,  ( Print  (Ident "S")  )  ] )::(Command Int)));
 
 main2 :: IO()
-main2 = putStr ( show  ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int)));
+main2 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int)));
+
+main = main1
 
 -- to do pdf 2.2 -- making show print original program
 -- to do pdf 3   -- making pccts parse input to make read into Command
