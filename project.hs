@@ -52,7 +52,7 @@ main2 :: IO()
 main2 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int)));
 
 main =
-	case ( eval (\x -> Nothing) ( Plus (Const (15::Int)) (Const (16::Int)) )) of
+	case ( eval (\x -> Nothing) (Eq ( Plus (Const (15::Int)) (Const (16::Int)) )(Const (17::Int)))) of
 		Left x -> putStr x
 		Right y -> putStr (show y) 
 
@@ -92,6 +92,45 @@ instance Evaluable (NExpr) where
 			(Right x, Right y) -> Right (x*y)
 			(Right x, Left y) -> Left y
 			(Left x, _) -> Left x
+get_type_bexpr :: BExpr a -> String
+get_type_bexpr _ = "pokemon"
+bool_to_a :: (Num a, Ord a) => Bool -> a
+bool_to_a True = 1
+bool_to_a False = 0
+instance Evaluable (BExpr) where
+	typeCheck f (Gt m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Eq m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Not v) = typeCheck f v
+	typeCheck f (And m1 m2) = (get_type_bexpr m1) == (get_type_bexpr m2) && typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Or m1 m2) =  (get_type_bexpr m1) == (get_type_bexpr m2) && typeCheck f m1 && typeCheck f m2 
+	eval f (Gt m1 m2) = 
+		case (eval f m1, eval f m2) of
+			(Right x, Right y) -> Right (if x > y then 1 else 0)
+			(Right x, Left y) -> Left y
+			(Left x, _) -> Left x
+	eval f (Eq m1 m2) = 
+		case (eval f m1, eval f m2) of
+			(Right x, Right y) -> Right (if x == y then 1 else 0)
+			(Right x, Left y) -> Left y
+			(Left x, _) -> Left x
+	eval f (And m1 m2) = 
+		case (eval f m1, eval f m2) of
+			(Right 1, Right 1) -> Right 1
+			(_, Left y) -> Left y
+			(Left x, _) -> Left x
+			(_,_) -> Right 0			
+	eval f (Or m1 m2) = 
+		case (eval f m1, eval f m2) of
+			(_, Left y) -> Left y
+			(Left x, _) -> Left x
+			(Right 1, _) -> Right 1
+			(_, Right 1) -> Right 1
+			(_,_) -> Right 0						
+	eval f (Not v) =
+		case (eval f v) of
+			(Right x) -> Right (if x == 1 then 0 else 1)
+			(Left x) -> Left x
+
 {-|
 Feu que tant NExpr com BExpr siguin instance de la classe Evaluable.
 Per aix`
