@@ -58,20 +58,21 @@ main =
 
 -- follows 4.1 -- better use lists and prelude function of lists of tuples or pairs
 data VarType a = General a | Pila [a];
+getType :: (VarType a) -> String
+getType (General x) = "general"
+getType (Pila l) = "pila"
 type SymRow a = (Ident , (VarType a));
 type SymTable a = [SymRow a];
 -- follows 4.2
 class Evaluable e where
 	eval :: (Num a, Ord a) => (Ident -> Maybe a) -> (e a) -> (Either String a)
 	typeCheck :: (Ident -> String) -> (e a) -> Bool
-get_type :: NExpr a -> String
-get_type _ = "pokemon"
 instance Evaluable (NExpr) where
 	typeCheck f (Const a) = True
-	typeCheck f (Var v) = True
-	typeCheck f (Plus m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
-	typeCheck f (Minus m1 m2) =  (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
-	typeCheck f (Times m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Var v) = f v == "general"
+	typeCheck f (Plus m1 m2)  = typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Minus m1 m2) = typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Times m1 m2) = typeCheck f m1 && typeCheck f m2 
 	eval f (Const a) = Right a
 	eval f (Var v) =  
 		case f v of
@@ -92,17 +93,12 @@ instance Evaluable (NExpr) where
 			(Right x, Right y) -> Right (x*y)
 			(Right x, Left y) -> Left y
 			(Left x, _) -> Left x
-get_type_bexpr :: BExpr a -> String
-get_type_bexpr _ = "pokemon"
-bool_to_a :: (Num a, Ord a) => Bool -> a
-bool_to_a True = 1
-bool_to_a False = 0
 instance Evaluable (BExpr) where
-	typeCheck f (Gt m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
-	typeCheck f (Eq m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
 	typeCheck f (Not v) = typeCheck f v
-	typeCheck f (And m1 m2) = (get_type_bexpr m1) == (get_type_bexpr m2) && typeCheck f m1 && typeCheck f m2 
-	typeCheck f (Or m1 m2) =  (get_type_bexpr m1) == (get_type_bexpr m2) && typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Gt m1 m2)  = typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Eq m1 m2)  = typeCheck f m1 && typeCheck f m2 
+	typeCheck f (And m1 m2) = typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Or m1 m2)  = typeCheck f m1 && typeCheck f m2 
 	eval f (Gt m1 m2) = 
 		case (eval f m1, eval f m2) of
 			(Right x, Right y) -> Right (if x > y then 1 else 0)
