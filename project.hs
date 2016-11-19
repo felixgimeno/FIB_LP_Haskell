@@ -130,19 +130,21 @@ instance Evaluable (BExpr) where
 		case (eval f v) of
 			(Right x) -> Right (if x == 1 then 0 else 1)
 			(Left x) -> Left x
-
 {-|
-Feu que tant NExpr com BExpr siguin instance de la classe Evaluable.
-Per aix`
- o heu de fer una funci ́o que avalu ̈ı expressions booleanes i una que
-avalu ̈ı expressions num`eriques. L’avaluaci ́o d’aquestes darreres expressions
-d ́
- ona error si cont ́e alguna variable sense assignar o de tipus incorrecte.
-3. Feu una funci ́
- o interpretCommand :: (Num a, Ord a) => SymTable a ->
-[a] -> Command a -> ((Either String [a]),SymTable a, [a]) , que interpreta
-un AST per una mem`
- oria i una entrada donada i retorna una tripleta que
+interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]),SymTable a, [a])
+interpretCommand s l (Assign v m1) = 
+interpretCommand s l (Push m1 m2) = 
+interpretCommand s l (Pop m1 m2) =
+interpretCommand s l (Size m1 m2) = 
+interpretCommand s [] (Input v) = 
+interpretCommand s x:xs (Input v) = 
+interpretCommand s l (Print v) = 
+interpretCommand s l (Empty v) = 
+interpretCommand s l (Seq list) = 
+interpretCommand s l (Cond b m1 m2) = 
+interpretCommand s l (Loop b m1 ) = 
+-}
+{-| , que interpretaun AST per una mem` oria i una entrada donada i retorna una tripleta que
 cont ́e a la primera component la llista amb totes les impressions o b ́e un
 missatge d’error, i a la segona i la tercera component la mem`oria i l’entrada
 respectivament despr ́es d’executar el codi.
