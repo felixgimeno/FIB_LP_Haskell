@@ -51,17 +51,68 @@ main1 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Empty  (Ident 
 main2 :: IO()
 main2 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int)));
 
-main = main1
-
--- to do pdf 2.2 -- making show print original program
--- to do pdf 3   -- making pccts parse input to make read into Command
+main =
+	case ( eval (\x -> Nothing) ( Plus (Const (15::Int)) (Const (16::Int)) )) of
+		Left x -> putStr x
+		Right y -> putStr (show y) 
 
 -- follows 4.1 -- better use lists and prelude function of lists of tuples or pairs
-
 data VarType a = General a | Pila [a];
 type SymRow a = (Ident , (VarType a));
 type SymTable a = [SymRow a];
-
-
-
 -- follows 4.2
+class Evaluable e where
+	eval :: (Num a, Ord a) => (Ident -> Maybe a) -> (e a) -> (Either String a)
+	typeCheck :: (Ident -> String) -> (e a) -> Bool
+get_type :: NExpr a -> String
+get_type _ = "pokemon"
+instance Evaluable (NExpr) where
+	typeCheck f (Const a) = True
+	typeCheck f (Var v) = True
+	typeCheck f (Plus m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Minus m1 m2) =  (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
+	typeCheck f (Times m1 m2) = (get_type m1) == (get_type m2) && typeCheck f m1 && typeCheck f m2 
+	eval f (Const a) = Right a
+	eval f (Var v) =  
+		case f v of
+			Just x -> Right x
+			Nothing -> Left "undefined variable"
+	eval f (Plus m1 m2) = 
+		case (eval f m1, eval f m2) of
+			(Right x, Right y) -> Right (x+y)
+			(Right x, Left y) -> Left y
+			(Left x, _) -> Left x
+	eval f (Minus m1 m2) =
+		case (eval f m1, eval f m2) of
+			(Right x, Right y) -> Right (x-y)
+			(Right x, Left y) -> Left y
+			(Left x, _) -> Left x
+	eval f (Times m1 m2) = 
+		case (eval f m1, eval f m2) of
+			(Right x, Right y) -> Right (x*y)
+			(Right x, Left y) -> Left y
+			(Left x, _) -> Left x
+{-|
+Feu que tant NExpr com BExpr siguin instance de la classe Evaluable.
+Per aix`
+ o heu de fer una funci ́o que avalu ̈ı expressions booleanes i una que
+avalu ̈ı expressions num`eriques. L’avaluaci ́o d’aquestes darreres expressions
+d ́
+ ona error si cont ́e alguna variable sense assignar o de tipus incorrecte.
+3. Feu una funci ́
+ o interpretCommand :: (Num a, Ord a) => SymTable a ->
+[a] -> Command a -> ((Either String [a]),SymTable a, [a]) , que interpreta
+un AST per una mem`
+ oria i una entrada donada i retorna una tripleta que
+cont ́e a la primera component la llista amb totes les impressions o b ́e un
+missatge d’error, i a la segona i la tercera component la mem`oria i l’entrada
+respectivament despr ́es d’executar el codi.
+4. Usant la funci ́
+ o anterior feu una funci ́o interpretProgram:: (Num a,Ord
+a) => [a] -> Command a -> (Either String [a]) , que avalua un codi
+complet per a una entrada donada.
+3
+Qualsevol programa o expressi ́o que contingui una subexpressi ́o que avalua
+a error, tamb ́e avalua a error. S’ha de comunicar quin ha estat l’error:
+“undefined variable” o “empty stack” o “type error”.
+-}
