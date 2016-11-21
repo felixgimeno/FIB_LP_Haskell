@@ -2,6 +2,8 @@
 newtype Ident = Ident String;
 instance Show(Ident) where
 	show (Ident v) = v
+instance Eq(Ident) where
+	(==) (Ident v) (Ident w) = v == w	
 data NExpr a = Var Ident | Const a | Plus (NExpr a)  (NExpr a) | Minus (NExpr a)  (NExpr a) | Times (NExpr a) (NExpr a) ;
 instance (Show a) => Show (NExpr a) where
 	show (Const a) = show a
@@ -51,13 +53,13 @@ main1 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Empty  (Ident 
 main2 :: IO()
 main2 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int)));
 
-main =
-	case ( eval (\x -> Nothing) (Eq ( Plus (Const (15::Int)) (Const (16::Int)) )(Const (17::Int)))) of
+mainold =
+	case ( eval (\x -> Nothing) (Gt ( Plus (Const (15::Int)) (Const (16::Int)) )(Const (17::Int)))) of
 		Left x -> putStr x
 		Right y -> putStr (show y) 
 
 -- follows 4.1 -- better use lists and prelude function of lists of tuples or pairs
-data VarType a = General a | Pila [a];
+data VarType a = General a | Pila [a] deriving (Show);
 getType :: (VarType a) -> String
 getType (General x) = "general"
 getType (Pila l) = "pila"
@@ -126,20 +128,36 @@ instance Evaluable (BExpr) where
 		case (eval f v) of
 			(Right x) -> Right (if x == 1 then 0 else 1)
 			(Left x) -> Left x
-{-|
-interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]),SymTable a, [a])
-interpretCommand s l (Assign v m1) = 
-interpretCommand s l (Push m1 m2) = 
-interpretCommand s l (Pop m1 m2) =
-interpretCommand s l (Size m1 m2) = 
-interpretCommand s [] (Input v) = 
-interpretCommand s x:xs (Input v) = 
-interpretCommand s l (Print v) = 
-interpretCommand s l (Empty v) = 
-interpretCommand s l (Seq list) = 
-interpretCommand s l (Cond b m1 m2) = 
-interpretCommand s l (Loop b m1 ) = 
+{-|			
+data VarType a = General a | Pila [a];
+getType :: (VarType a) -> String
+getType (General x) = "general"
+getType (Pila l) = "pila"
+type SymRow a = (Ident , (VarType a));
+type SymTable a = [SymRow a];
 -}
+getvalue :: SymTable a -> Ident -> (Either String (VarType a))
+getvalue [] i = Left "error"
+getvalue (x:xs) i = if (fst x) == i then (Right (snd x)) else getvalue xs i
+setvalue :: SymTable a -> Ident -> (VarType a) -> (SymTable a)
+setvalue [] i v = [(i,v)] 
+setvalue (x:xs) i v = if (fst x) == i then (i,v) : xs else x : (setvalue xs i v)
+
+main = putStr $ show $ getvalue (setvalue [] (Ident "X")(Pila [1,2,3]))(Ident "X")
+
+interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]),SymTable a, [a])
+interpretCommand s l (Assign v m1) = (Left "", s,[])
+interpretCommand s l (Push m1 m2) = (Left "", s,[])
+interpretCommand s l (Pop m1 m2) = (Left "", s,[])
+interpretCommand s l (Size m1 m2) = (Left "", s,[])
+interpretCommand s [] (Input v) = (Left "empty stack", s, [])
+interpretCommand s (x:xs) (Input v) = (Left "", s,[])
+interpretCommand s l (Print v) = (Left "", s,[])
+interpretCommand s l (Empty v) = (Left "", s,[])
+interpretCommand s l (Seq list) = (Left "", s,[])
+interpretCommand s l (Cond b m1 m2) = (Left "", s,[])
+interpretCommand s l (Loop b m1 ) = (Left "", s,[])
+
 {-| , que interpretaun AST per una mem` oria i una entrada donada i retorna una tripleta que
 cont ́e a la primera component la llista amb totes les impressions o b ́e un
 missatge d’error, i a la segona i la tercera component la mem`oria i l’entrada
