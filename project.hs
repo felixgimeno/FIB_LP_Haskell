@@ -21,6 +21,7 @@ instance (Show a) => Show (BExpr a) where
 	show (Or m1 m2) =  show m1 ++ " OR " ++ show m2 
 data Command a = Assign Ident (NExpr a) | Input Ident | Print Ident | Empty Ident | Push Ident (NExpr a) | 
 	Pop Ident Ident | Size Ident Ident | Seq [Command a] | Cond (BExpr a) (Command a) (Command a) | Loop (BExpr a) (Command a);
+{-
 instance (Show a) => Show (Command a) where
 	show (Assign v m1) = show v ++ " := " ++ show m1
 	show (Push m1 m2) = "PUSH " ++ show m1 ++ show m2
@@ -32,6 +33,7 @@ instance (Show a) => Show (Command a) where
 	show (Seq list) = foldl (\y x -> y ++ show x ++ "\n") "" list
 	show (Cond b m1 m2) = "IF " ++ show b ++ " THEN " ++ show m1 ++ " ELSE " ++ show m2 ++ " END "
 	show (Loop b m1 ) = "WHILE " ++ show b ++ " DO " ++ show m1 ++ " END "
+-}
 showC :: Show a => String -> Command a -> String	
 showC s (Assign v m1) = s ++ show v ++ " := " ++ show m1
 showC s (Push m1 m2) = s ++ "PUSH " ++ show m1 ++ " " ++ show m2
@@ -43,22 +45,16 @@ showC s (Empty v) = s ++ "EMPTY " ++ show v
 showC s (Seq list) = foldl (\y x -> y ++ showC s x ++ "\n") "" list
 showC s (Cond b m1 m2) = s ++ "IF " ++ show b ++ " THEN\n" ++ showC (s ++ "  ") m1 ++ s ++ "ELSE\n" ++ showC (s ++ "  ") m2 ++ s ++ "END "
 showC s (Loop b m1 ) = s ++ "WHILE " ++ show b ++ " DO\n" ++ showC (s ++ "  ") m1 ++ s ++ "END"
-
-main3 :: IO ()
+{-
 main3 = putStr ( show  ((Seq [ (Input (Ident "X")  ) , ( Input (Ident "Y") ), ( Assign (Ident "X") ( Plus (Const (15::Int)) (Const (16::Int)) ) )])::(Command Int)));
-
-main1 :: IO()
 main1 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Empty  (Ident "P")  )  ,  ( Loop (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Eq ( (Var (Ident "X") )  ) ( Const 0)) ) ( Seq [  ( Input  (Ident "Y")  )  ,  ( Push ( (Ident "P")  ) (  (Var (Ident "Y") ) ) )  ] ) )  ,  ( Assign ( (Ident "S")  ) ( Const 0) )  ,  ( Size  (Ident "P")  (Ident "L")  )  ,  ( Loop (Gt ( (Var (Ident "L") )  ) ( Const 0) ) ( Seq [  ( Pop  (Ident "P")  (Ident "Y")  )  ,  ( Assign ( (Ident "S")  ) ( Plus ( (Var (Ident "S") )  ) (  (Var (Ident "Y") ) )) )  ,  ( Assign ( (Ident "L")  ) ( Minus ( (Var (Ident "L") )  ) ( Const 1)) )  ] ) )  ,  ( Print  (Ident "S")  )  ] )::(Command Int)));
-
-main2 :: IO()
 main2 = putStr ( showC ""  ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int)));
-
 mainold =
 	case ( eval (\x -> Nothing) (Gt ( Plus (Const (15::Int)) (Const (16::Int)) )(Const (17::Int)))) of
 		Left x -> putStr x
 		Right y -> putStr (show y) 
-
--- follows 4.1 -- better use lists and prelude function of lists of tuples or pairs
+-}
+-- follows 4.1
 data VarType a = General a | Pila [a] deriving (Show);
 getType :: (VarType a) -> String
 getType (General x) = "general"
@@ -128,45 +124,55 @@ instance Evaluable (BExpr) where
 		case (eval f v) of
 			(Right x) -> Right (if x == 1 then 0 else 1)
 			(Left x) -> Left x
-{-|			
-data VarType a = General a | Pila [a];
-getType :: (VarType a) -> String
-getType (General x) = "general"
-getType (Pila l) = "pila"
-type SymRow a = (Ident , (VarType a));
-type SymTable a = [SymRow a];
--}
 getvalue :: SymTable a -> Ident -> (Either String (VarType a))
-getvalue [] i = Left "error"
+getvalue [] i = Left "undefined variable"
 getvalue (x:xs) i = if (fst x) == i then (Right (snd x)) else getvalue xs i
+gettype :: SymTable a -> Ident -> String
+gettype s v = 
+	case getvalue s v of
+		Left k -> k
+		Right k -> (getType k)
 setvalue :: SymTable a -> Ident -> (VarType a) -> (SymTable a)
 setvalue [] i v = [(i,v)] 
 setvalue (x:xs) i v = if (fst x) == i then (i,v) : xs else x : (setvalue xs i v)
 
 main = putStr $ show $ getvalue (setvalue [] (Ident "X")(Pila [1,2,3]))(Ident "X")
-
+-- follows 4.3
 interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]),SymTable a, [a])
-interpretCommand s l (Assign v m1) = (Left "", s,[])
-interpretCommand s l (Push m1 m2) = (Left "", s,[])
-interpretCommand s l (Pop m1 m2) = (Left "", s,[])
-interpretCommand s l (Size m1 m2) = (Left "", s,[])
-interpretCommand s [] (Input v) = (Left "empty stack", s, [])
-interpretCommand s (x:xs) (Input v) = (Left "", s,[])
-interpretCommand s l (Print v) = (Left "", s,[])
-interpretCommand s l (Empty v) = (Left "", s,[])
-interpretCommand s l (Seq list) = (Left "", s,[])
-interpretCommand s l (Cond b m1 m2) = (Left "", s,[])
-interpretCommand s l (Loop b m1 ) = (Left "", s,[])
+interpretCommand s ls (Assign v m1) =
+	case ((typeCheck (\x -> gettype s x) m1) , (eval (\x -> Nothing) m1)) of
+		(True , Right ret) -> (Right [], (setvalue s v (General ret)), ls)
+		(True , Left str) -> (Left str, [],[])
+		(False , _) -> (Left "type error", [],[])
+interpretCommand s l (Push m1 m2) = (Left "", s,[]) -- to do
+interpretCommand s l (Pop m1 m2) = (Left "", s,[]) -- to do
+interpretCommand s l (Size m1 m2) = (Left "", s,[]) -- to do
+interpretCommand s [] (Input v) = (Left "empty stack", s, []) -- to do
+interpretCommand s (x:xs) (Input v) = (Right [], setvalue s v (General x), xs)
+interpretCommand s l (Print v) = 
+	case (getvalue s v, gettype s v) of
+		(Right (General out), "general") -> (Right [out], s, l)
+		(Right out, err) -> (Left err , [],[])
+		(Left err, _) -> (Left err , [],[])
+interpretCommand s l (Empty v) = (Left "", s,[]) -- to do
+interpretCommand s l (Seq list) = (Left "", s,[]) -- to do
+interpretCommand s l (Cond b m1 m2) = (Left "", s,[]) -- to do
+interpretCommand s l (Loop b m1 ) = (Left "", s,[]) -- to do
+
+-- follows 4.4
+interpretProgram:: (Num a,Ord a) => [a] -> Command a -> (Either String [a])
+interpretProgram input command = 
+	case (interpretCommand [] input command) of
+		(Left my_error, symbols, remaining_input) -> Left my_error
+		(Right output, symbols, remaining_input) -> Right output
 
 {-| , que interpretaun AST per una mem` oria i una entrada donada i retorna una tripleta que
 cont ́e a la primera component la llista amb totes les impressions o b ́e un
 missatge d’error, i a la segona i la tercera component la mem`oria i l’entrada
 respectivament despr ́es d’executar el codi.
-4. Usant la funci ́
- o anterior feu una funci ́o interpretProgram:: (Num a,Ord
-a) => [a] -> Command a -> (Either String [a]) , que avalua un codi
-complet per a una entrada donada.
-3
+4. Usant la funció anterior feu una funció 
+interpretProgram:: (Num a,Ord a) => [a] -> Command a -> (Either String [a])
+ , que avalua un codi complet per a una entrada donada.
 Qualsevol programa o expressi ́o que contingui una subexpressi ́o que avalua
 a error, tamb ́e avalua a error. S’ha de comunicar quin ha estat l’error:
 “undefined variable” o “empty stack” o “type error”.
