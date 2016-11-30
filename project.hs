@@ -138,26 +138,39 @@ setvalue (x:xs) i v = if (fst x) == i then (i,v) : xs else x : (setvalue xs i v)
 
 main = putStr $ show $ getvalue (setvalue [] (Ident "X")(Pila [1,2,3]))(Ident "X")
 -- follows 4.3
+evalaux :: (Num a, Ord a) => SymTable a -> (Ident -> Maybe a)
+evalaux s x = case getvalue s x of
+    Left err -> Nothing
+    Right (General v) -> Just v
+    _ -> Nothing
 interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]),SymTable a, [a])
 interpretCommand s ls (Assign v m1) =
-	case ((typeCheck (\x -> gettype s x) m1) , (eval (\x -> Nothing) m1)) of
+	case ((typeCheck (\x -> gettype s x) m1) , (eval (evalaux s) m1)) of -- fix \x -> Nothing
 		(True , Right ret) -> (Right [], (setvalue s v (General ret)), ls)
 		(True , Left str) -> (Left str, [],[])
 		(False , _) -> (Left "type error", [],[])
+interpretCommand s l (Empty v) = (Left "", s,[]) -- to do
 interpretCommand s l (Push m1 m2) = (Left "", s,[]) -- to do
 interpretCommand s l (Pop m1 m2) = (Left "", s,[]) -- to do
 interpretCommand s l (Size m1 m2) = (Left "", s,[]) -- to do
-interpretCommand s [] (Input v) = (Left "empty stack", s, []) -- to do
+interpretCommand s [] (Input v) = (Left "empty stack", s, [])
 interpretCommand s (x:xs) (Input v) = (Right [], setvalue s v (General x), xs)
 interpretCommand s l (Print v) = 
 	case (getvalue s v, gettype s v) of
 		(Right (General out), "general") -> (Right [out], s, l)
 		(Right out, err) -> (Left err , [],[])
 		(Left err, _) -> (Left err , [],[])
-interpretCommand s l (Empty v) = (Left "", s,[]) -- to do
 interpretCommand s l (Seq list) = (Left "", s,[]) -- to do
 interpretCommand s l (Cond b m1 m2) = (Left "", s,[]) -- to do
-interpretCommand s l (Loop b m1 ) = (Left "", s,[]) -- to do
+interpretCommand s l (Loop b m1 ) = -- (Left "", s,[]) -- to do
+    case ((typeCheck (\x -> gettype s x) b) , (eval (evalaux s) b)) of
+    (True, Right 1) -> case interpretCommand s l m1 of
+        (Left err, _ ,_) -> (Left err, [],[])
+        (Right output, symbols, remaining_input) -> case interpretCommand symbols remaining_input (Loop b m1) of
+              (Left err, _ ,_) -> (Left err, [],[])
+              (Right output2, symbols2, remaining_input2) -> (Right (output ++ output2), symbols2, remaining_input2)
+    (True, Right _) -> (Right [], s, l)
+    (False, _) -> (Left "type error", [],[])
 
 -- follows 4.4
 interpretProgram:: (Num a,Ord a) => [a] -> Command a -> (Either String [a])
