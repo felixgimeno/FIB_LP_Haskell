@@ -143,6 +143,9 @@ evalaux s x = case getvalue s x of
     Left err -> Nothing
     Right (General v) -> Just v
     _ -> Nothing
+add :: (Num a, Ord a) => [a] -> ((Either String [a]),SymTable a, [a]) -> ((Either String [a]),SymTable a, [a])
+add xs (Right o, s , l) = (Right (xs ++ o), s, l)
+add xs (Left err, _ , _) = (Left err, [], [])
 interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]),SymTable a, [a])
 interpretCommand s ls (Assign v m1) =
 	case ((typeCheck (\x -> gettype s x) m1) , (eval (evalaux s) m1)) of -- fix \x -> Nothing
@@ -160,9 +163,16 @@ interpretCommand s l (Print v) =
 		(Right (General out), "general") -> (Right [out], s, l)
 		(Right out, err) -> (Left err , [],[])
 		(Left err, _) -> (Left err , [],[])
-interpretCommand s l (Seq list) = (Left "", s,[]) -- to do
-interpretCommand s l (Cond b m1 m2) = (Left "", s,[]) -- to do
-interpretCommand s l (Loop b m1 ) = -- (Left "", s,[]) -- to do
+interpretCommand s l (Seq []) = (Right [], s,l)      
+interpretCommand s l (Seq (x:xs)) = case interpretCommand s l x of
+    (Left err, _, _) -> (Left err, [], [])
+    (Right out, sym, input) -> add out (interpretCommand sym input (Seq xs))
+interpretCommand s l (Cond b m1 m2) =
+    case ((typeCheck (\x -> gettype s x) b) , (eval (evalaux s) b)) of
+    (True, Right 1) -> interpretCommand s l m1
+    (True, Right _) -> interpretCommand s l m2
+    (False, _) -> (Left "type error", [],[])
+interpretCommand s l (Loop b m1 ) = 
     case ((typeCheck (\x -> gettype s x) b) , (eval (evalaux s) b)) of
     (True, Right 1) -> case interpretCommand s l m1 of
         (Left err, _ ,_) -> (Left err, [],[])
