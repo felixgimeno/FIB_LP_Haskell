@@ -160,9 +160,19 @@ interpretCommand s ls (Assign v m1) =
 		(True , Right ret) -> (Right [], (setvalue s v (General ret)), ls)
 		(True , Left str) -> (Left str, [],[])
 		(False , _) -> (Left "type error", [],[])
-interpretCommand s l (Empty v) = (Left "", s,[]) -- to do
-interpretCommand s l (Push m1 m2) = (Left "", s,[]) -- to do
-interpretCommand s l (Pop m1 m2) = (Left "", s,[]) -- to do
+interpretCommand s l (Empty v) = (Right [], setvalue s v (Pila []),[])
+interpretCommand s l (Push m1 m2) =
+	case (gettype s m1 , getvalue s m1, typeCheck (\x -> gettype s x) m2, eval (evalaux s) m2) of
+	("pila", Right p, True, Right v) -> (Right [],setvalue s m1 (pushpila p v),l)
+	("pila", Right p, True, Left v) -> (Left v, [],[])
+	("pila", Right p, False, _) -> (Left "type error", [],[])
+	("pila", Left p, _, _) -> (Left p, [],[])
+	("general",_,_, _) -> (Left "type error", [],[])
+interpretCommand s l (Pop m1 m2) =
+	case (gettype s m1 , (getvalue s m1))of
+	("pila", Right p) -> (Right [],setvalue (setvalue s m1 (poppila p)) m2 (General (gettoppila p)),l)
+	("pila", Left p) -> (Left p, [],[])
+	("general",_) -> (Left "type error", [],[])
 interpretCommand s l (Size m1 m2) = 
 	case (gettype s m1 , (getvalue s m1))of
 	("pila", Right p) -> (Right [],setvalue s m2 (General (lengthpila p)),l)
