@@ -136,7 +136,15 @@ setvalue :: SymTable a -> Ident -> (VarType a) -> (SymTable a)
 setvalue [] i v = [(i,v)] 
 setvalue (x:xs) i v = if (fst x) == i then (i,v) : xs else x : (setvalue xs i v)
 
-main = putStr $ show $ getvalue (setvalue [] (Ident "X")(Pila [1,2,3]))(Ident "X")
+gettoppila :: VarType a -> a
+gettoppila (Pila (x:xs)) = x
+poppila :: VarType a -> VarType a
+poppila (Pila (x:xs)) = Pila xs
+pushpila :: VarType a -> a -> VarType a
+pushpila (Pila xs) m = Pila (m :xs) 
+lengthpila :: Num a => VarType a -> a
+lengthpila (Pila (x:xs)) = 1 + lengthpila (Pila xs)
+
 -- follows 4.3
 evalaux :: (Num a, Ord a) => SymTable a -> (Ident -> Maybe a)
 evalaux s x = case getvalue s x of
@@ -148,14 +156,18 @@ add xs (Right o, s , l) = (Right (xs ++ o), s, l)
 add xs (Left err, _ , _) = (Left err, [], [])
 interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]),SymTable a, [a])
 interpretCommand s ls (Assign v m1) =
-	case ((typeCheck (\x -> gettype s x) m1) , (eval (evalaux s) m1)) of -- fix \x -> Nothing
+	case ((typeCheck (\x -> gettype s x) m1) , (eval (evalaux s) m1)) of
 		(True , Right ret) -> (Right [], (setvalue s v (General ret)), ls)
 		(True , Left str) -> (Left str, [],[])
 		(False , _) -> (Left "type error", [],[])
 interpretCommand s l (Empty v) = (Left "", s,[]) -- to do
 interpretCommand s l (Push m1 m2) = (Left "", s,[]) -- to do
 interpretCommand s l (Pop m1 m2) = (Left "", s,[]) -- to do
-interpretCommand s l (Size m1 m2) = (Left "", s,[]) -- to do
+interpretCommand s l (Size m1 m2) = 
+	case (gettype s m1 , (getvalue s m1))of
+	("pila", Right p) -> (Right [],setvalue s m2 (General (lengthpila p)),l)
+	("pila", Left p) -> (Left p, [],[])
+	("general",_) -> (Left "type error", [],[])
 interpretCommand s [] (Input v) = (Left "empty stack", s, [])
 interpretCommand s (x:xs) (Input v) = (Right [], setvalue s v (General x), xs)
 interpretCommand s l (Print v) = 
@@ -188,6 +200,8 @@ interpretProgram input command =
 	case (interpretCommand [] input command) of
 		(Left my_error, symbols, remaining_input) -> Left my_error
 		(Right output, symbols, remaining_input) -> Right output
+
+main = putStr $ show $ interpretProgram [1,1] ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int));
 
 {-| , que interpretaun AST per una mem` oria i una entrada donada i retorna una tripleta que
 cont ́e a la primera component la llista amb totes les impressions o b ́e un
