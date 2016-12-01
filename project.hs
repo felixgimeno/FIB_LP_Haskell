@@ -170,7 +170,7 @@ interpretCommand s l (Push m1 m2) =
 	("general",_,_, _) -> (Left "type error", [],[])
 interpretCommand s l (Pop m1 m2) =
 	case (gettype s m1 , (getvalue s m1))of
-	("pila", Right p) -> (Right [],setvalue (setvalue s m1 (poppila p)) m2 (General (gettoppila p)),l)
+	("pila", Right p) -> if lengthpila p > 0 then (Right [],setvalue (setvalue s m1 (poppila p)) m2 (General (gettoppila p)),l) else (Left "empty stack", [],[])
 	("pila", Left p) -> (Left p, [],[])
 	("general",_) -> (Left "type error", [],[])
 interpretCommand s l (Size m1 m2) = 
