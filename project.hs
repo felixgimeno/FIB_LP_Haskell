@@ -1,4 +1,5 @@
 import System.IO
+import System.Random
 
 newtype Ident = Ident String deriving (Read);
 instance Show(Ident) where
@@ -209,30 +210,29 @@ interpretProgram input command =
 countinstr :: Command a -> Integer
 countinstr _ = -1
 
-getrandominput :: (Num a, Eq a) => a -> [a]
-getrandominput 1 = [1,2]
-getrandominput _ = [1,2]
+getnot :: IO Char
+getnot = do {c <- getChar ; if c == ' ' then getnot else return c}
 
-printout :: (Num a, Ord a, Show a, Eq a) => Integer -> [a] -> Command a -> IO()
-printout 0 my_input c = let input = my_input++(getrandominput 1) in case interpretProgram input c of
-            Left x  -> putStrLn $ show x
-            Right x -> putStrLn $ (show x)
-printout 1 _ c = let input = (getrandominput 1) in case interpretProgram input c of
-            Left x  -> putStrLn $ show x
-            Right x -> putStrLn $ ("input is ++ " ++ show input ++ " output is " ++ show x ++ show (countinstr c))
-printout k _ c = do
-            let input = (getrandominput 1) in case interpretProgram input c of
-                Left x  -> putStrLn $ show x
-                Right x -> putStrLn $ ("input is ++ " ++ show input ++ " output is " ++ show x)                                 
-            printout (k -1) [] c    
 main :: IO ()
+--main = print (1::Int)
 main = do   
         programhs <- openFile "programhs.txt" ReadMode
         prg <- hGetLine programhs
-        my_bool_char <- getChar
-        let my_bool = (read [my_bool_char]) :: Integer
-        if my_bool == 0 then printout 0 [] (read prg::Command Integer) else printout 0 [] (read prg::Command Double)
-		
-        
-
-
+        int_or_float <- getnot
+        type_of_test <- getnot
+        generatoraux <- newStdGen
+        if int_or_float == '0'
+            then
+                let program = (read prg::Command Integer) in
+                case type_of_test of 
+                    '0' -> do {input <- getLine ; putStrLn $ show $ (interpretProgram ((read input::[Integer])++(randomRs (0,99) generatoraux)) program) }
+                    '1' -> do putStrLn $ show $ (interpretProgram (randomRs (0,99) generatoraux) program) -- to do : add countinstr
+                    '2' -> do putStrLn $ show $ "still unimplemented"; -- to do
+                    _ -> do putStrLn $ show $ (int_or_float : type_of_test : []) ++ "version error"   
+            else 
+                let program = (read prg::Command Double) in
+                case type_of_test of 
+                    '0' -> do {input <- getLine ; putStrLn $ show $ (interpretProgram ((read input::[Double])++(randomRs (0,99) generatoraux)) program) }
+                    '1' -> do putStrLn $ show $ (interpretProgram (randomRs (0,99) generatoraux) program) -- to do : add countinstr
+                    '2' -> do putStrLn $ show $ "still unimplemented"; -- to do
+                    _ -> do putStrLn $ show $ "branch else of first if " ++ (int_or_float : type_of_test : []) ++ "version error"  
