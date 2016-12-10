@@ -1,0 +1,1 @@
+(Seq [(Input (Ident "X")),(Assign (Ident "X") (Plus (Const 1)(Var (Ident "X")))),(Print (Ident "X"))])
