@@ -134,6 +134,13 @@ lengthpila (Pila (_:xs)) = 1 + lengthpila (Pila xs)
 lengthpila (Pila []) = 0
 lengthpila (General _) = 1
 
+pila_entrada :: Ident
+pila_entrada = Ident "_valores"
+add_pila_entrada :: SymTable a -> a -> SymTable a
+add_pila_entrada s f = case getvalue s pila_entrada of
+    Left _ -> setvalue s pila_entrada (Pila (f:[]))
+    Right v -> setvalue s pila_entrada (pushpila v f)
+
 evalaux :: (Num a, Ord a) => SymTable a -> (Ident -> Maybe a)
 evalaux s x = case getvalue s x of
     Left _ -> Nothing
@@ -171,7 +178,7 @@ interpretCommand s l (Size m1 m2) =
     ("general",_) -> (Left "type error", [],[])
     (_,_) -> (Left "unrecognized error",[],[])
 interpretCommand s [] (Input _) = (Left "empty stack", s, [])
-interpretCommand s (x:xs) (Input v) = (Right [], setvalue s v (General x), xs)
+interpretCommand s (x:xs) (Input v) = (Right [], add_pila_entrada (setvalue s v  (General x)) x, xs)
 interpretCommand s l (Print v) = 
     case (getvalue s v, gettype s v) of
         (Right (General out), "general") -> (Right [out], s, l)
@@ -197,7 +204,7 @@ interpretCommand s l (Loop b m1 ) =
     (True, Right _) -> (Right [], s, l)
     (True, _) -> (Left "eval error", [], [])
     (False, _) -> (Left "type error", [],[])
--- interpretCommand returns (either error or outout, symbols, remaining_input)
+-- interpretCommand returns (either error or output, symbols, remaining_input)
  
 interpretProgram:: (Num a,Ord a) => [a] -> Command a -> (Either String [a])
 interpretProgram input command = 
@@ -207,18 +214,50 @@ interpretProgram input command =
 
 -- mainold = putStr $ show $ interpretProgram [1,1] ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int));
 
+printpila :: (Show a) => VarType a -> String
+printpila (Pila (x:xs)) = (printpila (Pila xs)) ++ (show x)  
+printpila _ = ""
+
+unbox :: Either String (VarType a) -> VarType a
+unbox (Right (Pila x)) = Pila x
+unbox _ = Pila []
+
+interpretProgramLoop:: (Show a, Num a,Ord a) => Integer -> [a] -> Command a -> String
+interpretProgramLoop 1 input command = 
+    case (interpretCommand [] input command) of
+        (Left my_error, _, _) -> "ocurrio error: " ++ show my_error ++ " con input " ++ "\n"
+        (Right output, s, _) -> "no ocurrio error con input: " ++ show (printpila (unbox  (getvalue s pila_entrada))) ++ " con salida " ++ (show output) ++ "\nel numero de instrucciones es " ++ show (countinstr command) ++ "\n"
+
+interpretProgramLoop k input command = 
+    case (interpretCommand [] input command) of
+        (Left my_error, _, _) -> "ocurrio error: " ++ show my_error ++ " con input " ++ "\n"
+        (Right output, s, remain) -> "no ocurrio error con input: " ++ show (printpila (unbox  (getvalue s pila_entrada))) ++ " con salida " ++ (show output) ++ "\n"++ interpretProgramLoop (k - 1) remain command
+
+
 countinstr :: Command a -> Integer
-countinstr _ = -1
+countinstr (Assign _ _) = 1
+countinstr (Input _)  = 1
+countinstr (Print _) = 1
+countinstr (Empty _) = 1
+countinstr (Push _ _) = 1
+countinstr (Pop _ _) = 1
+countinstr (Size _ _) = 1
+countinstr (Seq (x:xs)) = countinstr x + countinstr (Seq xs)
+countinstr (Seq []) = 0
+countinstr (Cond _ a b ) = 1 + countinstr a + countinstr b
+countinstr (Loop _  x) = 1 + countinstr x;
 
 getnot :: IO Char
-getnot = do {c <- getChar ; if c == ' ' then getnot else return c}
+getnot = do {c <- getChar ; if c == ' ' || c == '\n' then getnot else return c}
 
 main :: IO ()
 --main = print (1::Int)
 main = do   
         programhs <- openFile "programhs.txt" ReadMode
         prg <- hGetLine programhs
+        putStrLn "Introduce 0 para enteros, 1 para reales"
         int_or_float <- getnot
+        putStrLn "Introduce 0 para ejecución manual, 1 para test unico, 2 para test multiple"
         type_of_test <- getnot
         generatoraux <- newStdGen
         if int_or_float == '0'
@@ -226,13 +265,21 @@ main = do
                 let program = (read prg::Command Integer) in
                 case type_of_test of 
                     '0' -> do {input <- getLine ; putStrLn $ show $ (interpretProgram ((read input::[Integer])++(randomRs (0,99) generatoraux)) program) }
-                    '1' -> do putStrLn $ show $ (interpretProgram (randomRs (0,99) generatoraux) program) -- to do : add countinstr
-                    '2' -> do putStrLn $ show $ "still unimplemented"; -- to do
-                    _ -> do putStrLn $ show $ (int_or_float : type_of_test : []) ++ "version error"   
+                    '1' -> do putStrLn $ show $ (interpretProgram (randomRs (0,99) generatoraux) program) -- to do : add countinstr, show input
+                    '2' -> do {
+                        putStrLn "Intoduce numero de tests de 1 a 9"; 
+                        number_of_tests <- getnot;
+                        putStrLn $ interpretProgramLoop ((read (number_of_tests:[]))::Integer) (randomRs (0,99) generatoraux) program ;
+                        }
+                    _   -> do putStrLn $ show $ "version error"   
             else 
                 let program = (read prg::Command Double) in
                 case type_of_test of 
                     '0' -> do {input <- getLine ; putStrLn $ show $ (interpretProgram ((read input::[Double])++(randomRs (0,99) generatoraux)) program) }
                     '1' -> do putStrLn $ show $ (interpretProgram (randomRs (0,99) generatoraux) program) -- to do : add countinstr
-                    '2' -> do putStrLn $ show $ "still unimplemented"; -- to do
-                    _ -> do putStrLn $ show $ "branch else of first if " ++ (int_or_float : type_of_test : []) ++ "version error"  
+                    '2' -> do {
+                        putStrLn "Intoduce numero de tests "; 
+                        number_of_tests <- getnot;
+                        putStrLn $ interpretProgramLoop ((read (number_of_tests:[]))::Integer) (randomRs (0,99) generatoraux) program ;
+                    } -- to do
+                    _   -> do putStrLn $ show $ "version error"  
