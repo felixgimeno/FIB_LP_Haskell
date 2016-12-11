@@ -264,8 +264,8 @@ main = do
             then
                 let program = (read prg::Command Integer) in
                 case type_of_test of 
-                    '0' -> do {input <- getLine ; putStrLn $ show $ (interpretProgram ((read input::[Integer])++(randomRs (0,99) generatoraux)) program) }
-                    '1' -> do putStrLn $ show $ (interpretProgram (randomRs (0,99) generatoraux) program) -- to do : add countinstr, show input
+                    '0' -> do {foo <- getLine; putStrLn "Introduce entrada, por ejemplo [1,2,3]:"; input <- getLine ; putStrLn $ (interpretProgramLoop 1 ((read input::[Integer])++(randomRs (0,99) generatoraux)) program) }
+                    '1' -> do putStrLn $ (interpretProgramLoop 1 (randomRs (0,99) generatoraux) program)
                     '2' -> do {
                         putStrLn "Intoduce numero de tests de 1 a 9"; 
                         number_of_tests <- getnot;
@@ -275,11 +275,11 @@ main = do
             else 
                 let program = (read prg::Command Double) in
                 case type_of_test of 
-                    '0' -> do {input <- getLine ; putStrLn $ show $ (interpretProgram ((read input::[Double])++(randomRs (0,99) generatoraux)) program) }
-                    '1' -> do putStrLn $ show $ (interpretProgram (randomRs (0,99) generatoraux) program) -- to do : add countinstr
+                    '0' -> do {foo <- getLine; putStrLn "Introduce entrada, por ejemplo [1,2,3]:"; input <- getLine ; putStrLn $ (interpretProgramLoop 1 ((read input::[Double])++(randomRs (0,99) generatoraux)) program) }
+                    '1' -> do putStrLn $ (interpretProgramLoop 1 (randomRs (0,99) generatoraux) program)
                     '2' -> do {
-                        putStrLn "Intoduce numero de tests "; 
+                        putStrLn "Intoduce numero de tests de 1 a 9"; 
                         number_of_tests <- getnot;
                         putStrLn $ interpretProgramLoop ((read (number_of_tests:[]))::Integer) (randomRs (0,99) generatoraux) program ;
-                    } -- to do
+                    }
                     _   -> do putStrLn $ show $ "version error"  
