@@ -226,7 +226,7 @@ int main() {
 #token COMMA ";"
 #token SPACE "[\ \n]" << zzskip();>>;
 #token TAB "[\t]" << zzskip();>>;
-#token NUM "[0-9]+"
+#token NUM "[0-9]+|\-[0-9]+.[0-9]+|[0-9]+.[0-9]+|\-[0-9]+"
 #token ID "[a-zA-Z]+[0-9]*"
 command: (atomic_command)* <<#0=createASTlist(_sibling);>>;
 atomic_command: INPUT^ ID  | ID ASSIG^ nexpr | PRINT^ ID | 
