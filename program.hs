@@ -215,7 +215,7 @@ interpretProgram input command =
 -- mainold = putStr $ show $ interpretProgram [1,1] ((Seq [  ( Input  (Ident "X")  )  ,  ( Input  (Ident "Y")  )  ,  ( Cond (Or (Gt ( (Var (Ident "X") )  ) ( Const 0) ) ( Or (Eq ( (Var (Ident "X") )  ) ( Const 0) ) ( Not (Gt (Const 0 ) (  (Var (Ident "Y") ) )))) ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 1) )  ,  ( Loop (Gt ( (Var (Ident "X") )  ) (  (Var (Ident "Y") ) ) ) ( Seq [  ( Assign ( (Ident "X")  ) ( Minus ( (Var (Ident "X") )  ) ( Const 1)) )  ,  ( Assign ( (Ident "Z")  ) ( Times ( (Var (Ident "Z") )  ) (  (Var (Ident "Z") ) )) )  ] ) )  ]  ) ( Seq [  ( Assign ( (Ident "Z")  ) ( Const 0) )  ] ) )  ,  ( Print  (Ident "Z")  )  ] )::(Command Int));
 
 printpila :: (Show a) => VarType a -> String
-printpila (Pila (x:xs)) = (printpila (Pila xs)) ++ (show x)  
+printpila (Pila (x:xs)) = (show x) ++ " , " ++ (printpila (Pila xs))
 printpila _ = ""
 
 unbox :: Either String (VarType a) -> VarType a
